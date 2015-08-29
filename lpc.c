@@ -101,7 +101,7 @@ static struct {
 
 
 // ----------------------------------------------------------------------------------
-//  Auskunftsfunktionen
+//  Funktionen
 // ----------------------------------------------------------------------------------
 
 char *lpc_part_name(uint32_t part_id)
@@ -111,4 +111,27 @@ char *lpc_part_name(uint32_t part_id)
 			return lpc_names[i].name;
 
 	return 0;
+}
+
+void lpc_prepare_sector(can_t *can, uint8_t start_sector, uint8_t end_sector)
+{
+	uint16_t sectors = ((end_sector << 8) | start_sector);
+	sdo_download_exp(can, LPC_SDO_NODE_ID, LPC_SDO_PREP_SECTOR_IDX, 0x00, (uint8_t*)&sectors, 2);
+}
+
+void lpc_erase_sector(can_t *can, uint8_t start_sector, uint8_t end_sector)
+{
+	uint16_t sectors = ((end_sector << 8) | start_sector);
+
+	// prepare and erase the sectors
+	sdo_download_exp(can, LPC_SDO_NODE_ID, LPC_SDO_PREP_SECTOR_IDX, 0x00, (uint8_t*)&sectors, 2);
+	sdo_download_exp(can, LPC_SDO_NODE_ID, LPC_SDO_ERASE_IDX, 0x00, (uint8_t*)&sectors, 2);
+}
+
+uint32_t lpc_ram_addr(can_t *can)
+{
+	uint32_t ram_addr;
+	sdo_upload(can, LPC_SDO_NODE_ID, LPC_SDO_RAM_ADDR_IDX, 0x00, &ram_addr);
+	
+	return ram_addr;
 }

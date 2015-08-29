@@ -2,11 +2,14 @@
 #define LPC_H_
 
 #include <stdint.h>
+#include "sdo.h"
 
 
 // ----------------------------------------------------------------------------------
 //  Konstanten
 // ----------------------------------------------------------------------------------
+
+#define LPC_SDO_NODE_ID			0x67D
 
 #define LPC_SDO_UNLOCK_IDX		0x5000
 #define LPC_SDO_UNLOCK_SUBIDX	0x00
@@ -33,5 +36,8 @@
 
 char *lpc_part_name(uint32_t part_id);
 
+void lpc_prepare_sector(can_t *can, uint8_t start_sector, uint8_t end_sector);
+void lpc_erase_sector(can_t *can, uint8_t start_sector, uint8_t end_sector);
+uint32_t lpc_ram_addr(can_t *can);
 
 #endif
