@@ -101,7 +101,12 @@ int main(int argc, char *argv[])
 		uint16_t bytes_to_copy = 0;
 	
 		// download the sectors content
-		sdo_download_buffer(&can, LPC_SDO_NODE_ID, 0x1F50, 0x01, sectors[i].binary, sectors[i].size, progress_print);
+		err = sdo_download_buffer(&can, LPC_SDO_NODE_ID, 0x1F50, 0x01, sectors[i].binary, sectors[i].size, progress_print);
+		if (err != CAN_SUCCESS)
+		{
+			printf("\nerror in download_sector_payload: 0x%x\n", err);
+			exit(-1);
+		}
 
 		// this is a full sector -> straight-forward copy
 		if (sectors[i].size == LPC_11C24_SECTOR_SIZE)
@@ -113,13 +118,13 @@ int main(int argc, char *argv[])
 			current_action = "filling unused ram";
 
 			// calculate the next matching block size and fill with 0xFF
-			const size_t next_block_size = pow(2, ceil(log(sectors[i].size)/log(2)));
+			const size_t next_block_size = lpc_next_sector_size(sectors[i].size);
 			size_t zero_count = next_block_size - sectors[i].size;
 			uint8_t zeroes[zero_count];
 			memset(zeroes, 0xFF, zero_count);
 			err = sdo_download_buffer(&can, LPC_SDO_NODE_ID, 0x1F50, 0x01, zeroes, zero_count, progress_print);
 			if (err != CAN_SUCCESS) {
-				printf("\nsdo_download_buffer: error: 0x%x\n", err);
+				printf("\nerror in download_zeroes: 0x%x\n", err);
 				exit(-1);
 			}
 			bytes_to_copy = next_block_size;
@@ -130,12 +135,22 @@ int main(int argc, char *argv[])
 		sprintf(tmp, "sector %d", current_sector);
 		print_progress(1, 1, tmp, "copy to flash");
 		lpc_prepare_sector(&can, i, i);
-		sdo_download_exp(&can, LPC_SDO_NODE_ID, 0x5050, 0x03, (uint8_t*)&bytes_to_copy, 2);
+		err = sdo_download_exp(&can, LPC_SDO_NODE_ID, 0x5050, 0x03, (uint8_t*)&bytes_to_copy, 2);
+		if (err != CAN_SUCCESS)
+		{
+			printf("\nerror in copy_to_flash: 0x%x [count: %d]\n", err, bytes_to_copy);
+			exit(-1);
+		}
 
 		// reset ram address and set next flash addr
 		sdo_download_exp(&can, LPC_SDO_NODE_ID, LPC_SDO_RAM_ADDR_IDX, 0x00, (uint8_t*)&ram_start_addr, 4);
 		uint32_t next_flash_addr = (i + 1) * LPC_11C24_SECTOR_SIZE;
-		sdo_download_exp(&can, LPC_SDO_NODE_ID, 0x5050, 0x01, (uint8_t*)&next_flash_addr, 4);
+		err = sdo_download_exp(&can, LPC_SDO_NODE_ID, 0x5050, 0x01, (uint8_t*)&next_flash_addr, 4);
+		if (err != CAN_SUCCESS)
+		{
+			printf("\nerror in rest_ram_addr: 0x%x\n", err);
+			exit(-1);
+		}
 
 		// increment the sector number for the progressbar
 		current_sector++;

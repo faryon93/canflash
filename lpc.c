@@ -113,6 +113,20 @@ char *lpc_part_name(uint32_t part_id)
 	return 0;
 }
 
+size_t lpc_next_sector_size(size_t size)
+{
+	if (size <= 256)
+		return 256;
+	else if (size <= 512)
+		return 512;
+	else if (size <= 1024)
+		return 1024;
+	else if (size <= 4096)
+		return 4096;
+	else
+		return -1;
+}
+
 void lpc_prepare_sector(can_t *can, uint8_t start_sector, uint8_t end_sector)
 {
 	uint16_t sectors = ((end_sector << 8) | start_sector);
