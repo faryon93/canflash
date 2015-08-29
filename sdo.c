@@ -11,6 +11,13 @@
 
 
 // ----------------------------------------------------------------------------------
+//  Konstanten
+// ----------------------------------------------------------------------------------
+
+static uint8_t toggle = 0;
+
+
+// ----------------------------------------------------------------------------------
 //  Funktionen
 // ----------------------------------------------------------------------------------
 
@@ -91,6 +98,8 @@ uint32_t sdo_download_init(can_t *can, uint16_t node_id, uint16_t index, uint8_t
 	struct can_frame response;
 	can_read(can, &response);
 
+	toggle = 0;
+
 	// check for errors from node
 	return (response.data[0] == 0x80)
 		? uint32_t(response.data[4])
@@ -100,8 +109,6 @@ uint32_t sdo_download_init(can_t *can, uint16_t node_id, uint16_t index, uint8_t
 
 uint32_t sdo_download_seg(can_t *can, uint16_t node_id, void *data, size_t size, bool last)
 {
-	static uint8_t toggle = 0;
-
 	// can payload for sdo upload request
 	uint8_t frame[] =
 	{
@@ -131,7 +138,9 @@ uint32_t sdo_download_seg(can_t *can, uint16_t node_id, void *data, size_t size,
 
 uint32_t sdo_download_buffer(can_t *can, uint16_t node_id, uint16_t index, uint8_t sub_index, uint8_t *data, size_t size, void(*update)(int, int))
 {
-	sdo_download_init(can, node_id, index, sub_index);
+	uint32_t err = sdo_download_init(can, node_id, index, sub_index);
+	if (err != CAN_SUCCESS)
+		return err;
 
 	const size_t rest_bytes = size % SEGMENT_MAX_PAYLOAD;
 	const size_t full_frames = size / SEGMENT_MAX_PAYLOAD;
@@ -145,8 +154,11 @@ uint32_t sdo_download_buffer(can_t *can, uint16_t node_id, uint16_t index, uint8
 			? 1
 			: 0;
 
-		sdo_download_seg(can, node_id, &data[i * SEGMENT_MAX_PAYLOAD], SEGMENT_MAX_PAYLOAD, is_last_frame);
+		err = sdo_download_seg(can, node_id, &data[i * SEGMENT_MAX_PAYLOAD], SEGMENT_MAX_PAYLOAD, is_last_frame);
+		if (err != CAN_SUCCESS)
+			return err;
 
+		// call user update function
 		if (update != 0)
 			update((rest_bytes == 0) ? full_frames : (full_frames + 1), i);
 	}
@@ -154,7 +166,12 @@ uint32_t sdo_download_buffer(can_t *can, uint16_t node_id, uint16_t index, uint8
 	// the last frame is smaller
 	if (rest_bytes != 0)
 	{
-		sdo_download_seg(can, node_id, &data[full_frames * SEGMENT_MAX_PAYLOAD], rest_bytes, 1);	
+		err = sdo_download_seg(can, node_id, &data[full_frames * SEGMENT_MAX_PAYLOAD], rest_bytes, 1);	
+		if (err != CAN_SUCCESS)
+			return err;
+
 		update(full_frames + 1, full_frames + 1);
 	}
+
+	return CAN_SUCCESS;
 }

@@ -20,6 +20,8 @@ void progress_print(int max, int current)
 
 int main(int argc, char *argv[])
 {
+	uint32_t err;
+
 	// command line arguments
 	if (argc < 3)
 	{
@@ -50,7 +52,7 @@ int main(int argc, char *argv[])
 		printf("firmware ok, download is possible\n");
 
 	} else {
-		printf("error: firmware does not fit into microprocessor\n");
+		printf("error: firmware does not fit into flash\n");
 		exit(-1);
 	}
 
@@ -68,7 +70,7 @@ int main(int argc, char *argv[])
 	// verify the lpc processors part id
 	printf("verifying lpc part id: ...");
 	uint32_t lpc_part_id = 0;
-	uint32_t err = sdo_upload(&can, LPC_SDO_NODE_ID, LPC_SDO_IDENTITY_IDX, LPC_SDO_PARTID_SUBIDX, &lpc_part_id);
+	err = sdo_upload(&can, LPC_SDO_NODE_ID, LPC_SDO_IDENTITY_IDX, LPC_SDO_PARTID_SUBIDX, &lpc_part_id);
 	if (lpc_part_id == 0x1430102B)
 	{
 		printf("\rverifying lpc part id: [OK] %s\n", lpc_part_name(lpc_part_id));
@@ -115,7 +117,11 @@ int main(int argc, char *argv[])
 			size_t zero_count = next_block_size - sectors[i].size;
 			uint8_t zeroes[zero_count];
 			memset(zeroes, 0xFF, zero_count);
-			sdo_download_buffer(&can, LPC_SDO_NODE_ID, 0x1F50, 0x01, zeroes, zero_count, progress_print);
+			err = sdo_download_buffer(&can, LPC_SDO_NODE_ID, 0x1F50, 0x01, zeroes, zero_count, progress_print);
+			if (err != CAN_SUCCESS) {
+				printf("\nsdo_download_buffer: error: 0x%x\n", err);
+				exit(-1);
+			}
 			bytes_to_copy = next_block_size;
 		}
 
@@ -138,6 +144,14 @@ int main(int argc, char *argv[])
 	}
 
 	printf("firmware download finished\n");
+
+	// execute user code
+	printf("executing user application at 0x00000004: ...");
+	uint8_t go = 1;
+	uint32_t go_address = 0x00000004;
+	sdo_download_exp(&can, LPC_SDO_NODE_ID, 0x5070, 0x01, &go_address, 4);
+	sdo_download_exp(&can, LPC_SDO_NODE_ID, 0x1F51, 0x01, &go, 1);
+	printf("\rexecuting user application at 0x00000004: done\n");
 
 	// close
 	firmware_free(sectors);
