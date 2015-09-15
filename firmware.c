@@ -11,6 +11,8 @@ sector_t *firmware_open(char *path, uint32_t sector_size, size_t *sector_count)
 	// load the firmware from the filesystem
 	size_t firmware_size;
 	uint8_t *firmware = io_read_file(path, &firmware_size);	
+	if (firmware == 0)
+		return 0;
 
 	// compute the count of full sectors, and the amount of rest bytes
 	const size_t full_sector_count = firmware_size / sector_size;

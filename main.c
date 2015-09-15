@@ -32,6 +32,11 @@ int main(int argc, char *argv[])
 	// load the firmware file
 	size_t sector_count;
 	sector_t *sectors = firmware_open(argv[2], LPC_11C24_SECTOR_SIZE, &sector_count);
+	if (sectors == 0)
+	{
+		printf("failed to open firmware file \"%s\"\n", argv[2]);
+		exit(-1);
+	}
 
 	// print the anatomy of the firmware file and stats
 	printf("------------------------------------------------------------\n");
@@ -69,6 +74,7 @@ int main(int argc, char *argv[])
 
 	// verify the lpc processors part id
 	printf("verifying lpc part id: ...");
+	fflush(stdout);
 	uint32_t lpc_part_id = 0;
 	err = sdo_upload(&can, LPC_SDO_NODE_ID, LPC_SDO_IDENTITY_IDX, LPC_SDO_PARTID_SUBIDX, &lpc_part_id);
 	if (lpc_part_id == 0x1430102B)
