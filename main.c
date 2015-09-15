@@ -164,8 +164,18 @@ int main(int argc, char *argv[])
 	printf("executing user application at 0x00000004: ...");
 	uint8_t go = 1;
 	uint32_t go_address = 0x00000004;
-	sdo_download_exp(&can, LPC_SDO_NODE_ID, 0x5070, 0x01, &go_address, 4);
-	sdo_download_exp(&can, LPC_SDO_NODE_ID, 0x1F51, 0x01, &go, 1);
+	err =  sdo_download_exp(&can, LPC_SDO_NODE_ID, 0x5070, 0x01, &go_address, 4);
+	if (err != CAN_SUCCESS)
+	{
+		printf("\nexecuting user application at 0x00000004: failed (0x%x)\n", err);
+		exit(-1);
+	}
+	err = sdo_download_exp(&can, LPC_SDO_NODE_ID, 0x1F51, 0x01, &go, 1);
+	if (err != CAN_SUCCESS)
+	{
+		printf("\nexecuting user application at 0x00000004: failed, go (0x%x)\n", err);
+		exit(-1);
+	}
 	printf("\rexecuting user application at 0x00000004: done\n");
 
 	// close
