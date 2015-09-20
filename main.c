@@ -69,7 +69,12 @@ int main(int argc, char *argv[])
 
 	// initialize the can interface
 	printf("opening CAN interface: ...");
-	can_init(&can, argv[1]);
+	err = can_init(&can, argv[1]);
+	if (err != CAN_SUCCESS)
+	{
+		printf("\ropenining CAN interface: failed [%s]\n", strerror(err));
+		exit(-1);
+	}
 	printf("\ropening CAN interface: done\n");
 
 	// verify the lpc processors part id
