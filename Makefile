@@ -1,4 +1,4 @@
-OBJECTS = main.c lpc.c can.c sdo.c firmware.c progressbar.c util/io.c
+OBJECTS = main.o lpc.o can.o sdo.o firmware.o progressbar.o util/io.o
 
 all: $(OBJECTS)
 	gcc --std=gnu99 -lm $(OBJECTS) -o uflash
