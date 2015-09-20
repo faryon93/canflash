@@ -14,7 +14,7 @@ char *current_action = "downloading to ram";
 void progress_print(int max, int current)
 {
 	char tmp[50];
-	sprintf(tmp, "sector %d", current_sector);
+	sprintf(tmp, "sector %zu", current_sector);
 	print_progress(max, current, tmp, current_action);
 }
 
@@ -46,10 +46,10 @@ int main(int argc, char *argv[])
 	size_t firmware_size = 0;
 	for (int i = 0; i < sector_count; i++)
 	{
-		printf("\tsector %d, size: %d, addr: 0x%04x - 0x%04x\n", i, sectors[i].size, i*LPC_11C24_SECTOR_SIZE, (i*LPC_11C24_SECTOR_SIZE + sectors[i].size - 1));
+		printf("\tsector %d, size: %zu, addr: 0x%04x - 0x%04zx\n", i, sectors[i].size, i*LPC_11C24_SECTOR_SIZE, (i*LPC_11C24_SECTOR_SIZE + sectors[i].size - 1));
 		firmware_size += sectors[i].size;
 	}
-	printf("used space: %d bytes, free space: %d byte\n", firmware_size, (LPC_FLASH_SIZE - firmware_size));
+	printf("used space: %zu bytes, free space: %zu byte\n", firmware_size, (LPC_FLASH_SIZE - firmware_size));
 
 	// check firmware plausibility
 	if (firmware_size <= LPC_FLASH_SIZE && sector_count <= LPC_11C24_SECTOR_COUT)
@@ -138,7 +138,7 @@ int main(int argc, char *argv[])
 
 		// prepare the sector and copy to flash
 		char tmp[50];
-		sprintf(tmp, "sector %d", current_sector);
+		sprintf(tmp, "sector %zu", current_sector);
 		print_progress(1, 1, tmp, "copy to flash");
 		lpc_prepare_sector(&can, i, i);
 		err = sdo_download_exp(&can, LPC_SDO_NODE_ID, 0x5050, 0x03, (uint8_t*)&bytes_to_copy, 2);
