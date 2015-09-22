@@ -5,6 +5,7 @@
 //  Lokale Variablen
 // ----------------------------------------------------------------------------------
 
+/** Ids der einzelnen LPCs die Programmiert werden koennen. */
 static struct {
 	char *name;
 	uint32_t part_id;
@@ -148,4 +149,22 @@ uint32_t lpc_ram_addr(can_t *can)
 	sdo_upload(can, LPC_SDO_NODE_ID, LPC_SDO_RAM_ADDR_IDX, 0x00, &ram_addr);
 	
 	return ram_addr;
+}
+
+uint32_t lpc_go(can_t *can, uint32_t addr)
+{
+	uint32_t err;
+	uint8_t go = 1;
+
+	// download the address we want to execute at
+	err =  sdo_download_exp(can, LPC_SDO_NODE_ID, 0x5070, 0x01, (void*)&addr, 4);
+	if (err != CAN_SUCCESS)
+		return err;
+
+	// execute the code
+	err = sdo_download_exp(can, LPC_SDO_NODE_ID, 0x1F51, 0x01, &go, 1);
+	if (err != CAN_SUCCESS)
+		return err;
+
+	return CAN_SUCCESS;
 }

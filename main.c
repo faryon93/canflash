@@ -11,6 +11,10 @@ can_t can;
 size_t current_sector = 0;
 char *current_action = "downloading to ram";
 
+static uint8_t magic_reset_bytes[]
+	= {0x80, 0xB5, 0x00, 0xAF, 0xBF, 0xF3, 0x4F, 0x8F, 0x02, 0x4B, 0x03, 0x4A, 0xDA, 0x60, 0xBF, 0xF3, 0x4F, 0x8F, 0xFE, 0xE7, 0x00, 0xED, 0x00, 0xE0, 0x04, 0x00, 0xFA, 0x05};
+
+
 void progress_print(int max, int current)
 {
 	char tmp[50];
@@ -171,26 +175,35 @@ int main(int argc, char *argv[])
 
 	printf("firmware download finished\n");
 
-	// execute user code
-	printf("executing user application at 0x00000004: ...");
-	uint8_t go = 1;
-	uint32_t go_address = 0x00000004;
-	err =  sdo_download_exp(&can, LPC_SDO_NODE_ID, 0x5070, 0x01, &go_address, 4);
+
+	// write the magic reset bytes to ram
+	printf("resetting microcontroller: ...");
+	err = sdo_download_exp(&can, LPC_SDO_NODE_ID, LPC_SDO_RAM_ADDR_IDX, 0x00, (uint8_t*)&ram_start_addr, 4);
 	if (err != CAN_SUCCESS)
 	{
-		printf("\nexecuting user application at 0x00000004: failed (0x%x)\n", err);
+		printf("\rresetting microcontroller: [FAILED] error setting ramaddress 0x%x\n", err);
 		exit(-1);
 	}
-	err = sdo_download_exp(&can, LPC_SDO_NODE_ID, 0x1F51, 0x01, &go, 1);
+
+	err = sdo_download_buffer(&can, LPC_SDO_NODE_ID, 0x1F50, 0x01, magic_reset_bytes, sizeof(magic_reset_bytes), NULL);
 	if (err != CAN_SUCCESS)
 	{
-		printf("\nexecuting user application at 0x00000004: failed, go (0x%x)\n", err);
+		printf("\rresetting microcontroller: [FAILED] error downloading magic bytes\n");
 		exit(-1);
 	}
-	printf("\rexecuting user application at 0x00000004: done\n");
+
+	// execute the magic reset bytes
+	err = lpc_go(&can, ram_start_addr);
+	if (err != CAN_SUCCESS)
+	{
+		printf("\rresetting microcontroller: [FAILED] go failed 0x%x\n", err);
+		exit(-1);
+	}
+	printf("\rresetting microcontroller: [OK]\n");
 
 	// close
 	firmware_free(sectors);
 	can_close(&can);
 	return 0;
 }
+ 

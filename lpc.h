@@ -41,5 +41,6 @@ size_t lpc_next_sector_size(size_t size);
 void lpc_prepare_sector(can_t *can, uint8_t start_sector, uint8_t end_sector);
 void lpc_erase_sector(can_t *can, uint8_t start_sector, uint8_t end_sector);
 uint32_t lpc_ram_addr(can_t *can);
+uint32_t lpc_go(can_t *can, uint32_t addr);
 
 #endif
